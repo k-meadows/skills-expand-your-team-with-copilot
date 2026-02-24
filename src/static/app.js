@@ -568,6 +568,15 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         `
         }
+        <div class="share-container">
+          <button class="share-button" title="Share this activity">🔗 Share</button>
+          <div class="share-dropdown hidden">
+            <a class="share-option" href="#" data-platform="twitter">𝕏 Twitter</a>
+            <a class="share-option" href="#" data-platform="whatsapp">💬 WhatsApp</a>
+            <a class="share-option" href="#" data-platform="facebook">📘 Facebook</a>
+            <button class="share-option" data-platform="copy">📋 Copy Link</button>
+          </div>
+        </div>
       </div>
     `;
 
@@ -586,6 +595,70 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add share button functionality
+    const shareButton = activityCard.querySelector(".share-button");
+    const shareDropdown = activityCard.querySelector(".share-dropdown");
+    const shareOptions = activityCard.querySelectorAll(".share-option");
+    const sanitize = (text) => String(text).replace(/\s+/g, " ").trim();
+    const shareText = `Check out ${sanitize(name)} at Mergington High School!\n${sanitize(details.description)}\nSchedule: ${sanitize(formattedSchedule)}`;
+    const shareUrl = `${window.location.href.split("#")[0]}#${encodeURIComponent(name)}`;
+
+    shareButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (navigator.share) {
+        navigator
+          .share({
+            title: `${name} - Mergington High School`,
+            text: shareText,
+            url: shareUrl,
+          })
+          .catch(console.error);
+      } else {
+        // Close other open dropdowns
+        document.querySelectorAll(".share-dropdown:not(.hidden)").forEach((d) => {
+          if (d !== shareDropdown) d.classList.add("hidden");
+        });
+        shareDropdown.classList.toggle("hidden");
+      }
+    });
+
+    shareOptions.forEach((option) => {
+      option.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const platform = option.dataset.platform;
+        if (platform === "twitter") {
+          window.open(
+            `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText + "\n" + shareUrl)}`,
+            "_blank",
+            "noopener,noreferrer"
+          );
+        } else if (platform === "whatsapp") {
+          window.open(
+            `https://wa.me/?text=${encodeURIComponent(shareText + "\n" + shareUrl)}`,
+            "_blank",
+            "noopener,noreferrer"
+          );
+        } else if (platform === "facebook") {
+          window.open(
+            `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`,
+            "_blank",
+            "noopener,noreferrer"
+          );
+        } else if (platform === "copy") {
+          navigator.clipboard
+            .writeText(shareText + "\n" + shareUrl)
+            .then(() => {
+              showMessage("Activity link copied to clipboard!", "success");
+            })
+            .catch(() => {
+              showMessage("Failed to copy to clipboard. Please try again.", "error");
+            });
+        }
+        shareDropdown.classList.add("hidden");
+      });
+    });
 
     activitiesList.appendChild(activityCard);
   }
@@ -860,6 +933,13 @@ document.addEventListener("DOMContentLoaded", () => {
     setDayFilter,
     setTimeRangeFilter,
   };
+
+  // Close share dropdowns when clicking outside
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".share-dropdown:not(.hidden)").forEach((d) => {
+      d.classList.add("hidden");
+    });
+  });
 
   // Initialize app
   checkAuthentication();
